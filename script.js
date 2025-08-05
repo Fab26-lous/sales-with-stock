@@ -341,6 +341,11 @@ function submitAllSales() {
 
     progress.innerHTML = `Submitting ${index + 1}/${currentSales.length} items...`;
     
+  function backupSaleToLocal(sale) {
+  const pendingSales = JSON.parse(localStorage.getItem('pendingSales') || '[]');
+  pendingSales.push(sale);
+  localStorage.setItem('pendingSales', JSON.stringify(pendingSales));
+}
     submitSaleToGoogleForm(currentSales[index])
       .then(() => {
         successCount++;
