@@ -370,41 +370,50 @@ function submitAllSales() {
 }
 
 async function submitSaleToGoogleForm(sale) {
-  const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLScGs3PzOn2vABptL5aHssXw2si3Nl_j5tInqr-3X_K_8a2lsw/formResponse";
+  // 1. Create the submission URL with all parameters
+  const baseUrl = "https://docs.google.com/forms/d/e/1FAIpQLScGs3PzOn2vABptL5aHssXw2si3Nl_j5tInqr-3X_K_8a2lsw/formResponse";
   
-  const formData = new URLSearchParams();
+  // 2. Build the query string with all required parameters
+  const params = new URLSearchParams();
   
-  // Add your form fields (using the exact entry IDs from your form)
-  formData.append("entry.530043741", sale.item);               // Item
-  formData.append("entry.1375268000", sale.unit);              // Unit
-  formData.append("entry.782910412", sale.quantity);           // Quantity
-  formData.append("entry.1738189165", sale.price);             // Price
-  formData.append("entry.1117472858", sale.discount || 0);     // Discount
-  formData.append("entry.821166726", sale.extra || 0);         // Extra
-  formData.append("entry.392694852", sale.total);              // Total
-  formData.append("entry.1649210669", sale.paymentMethod);     // Payment
-  formData.append("entry.1206379884", stores[currentStore].name); // Store
-  formData.append("entry.1846424292", products.find(p => p.id === sale.productId)?.stock || 0); // Stock
+  // Required hidden fields
+  params.append("fvv", "1");
+  params.append("pageHistory", "0");
+  params.append("submit", "Submit"); // Force submission
 
-  try {
-    console.log("Submitting sale:", sale);
-    console.log("Form data:", formData.toString());
+  // Your form fields
+  params.append("entry.530043741", sale.item);               // Item
+  params.append("entry.1375268000", sale.unit);             // Unit
+  params.append("entry.782910412", sale.quantity);          // Quantity
+  params.append("entry.1738189165", sale.price);            // Price
+  params.append("entry.1117472858", sale.discount || 0);    // Discount
+  params.append("entry.821166726", sale.extra || 0);        // Extra
+  params.append("entry.392694852", sale.total);             // Total
+  params.append("entry.1649210669", sale.paymentMethod);    // Payment
+  params.append("entry.1206379884", stores[currentStore].name); // Store
+  params.append("entry.1846424292", products.find(p => p.id === sale.productId)?.stock || 0); // Stock
 
-    const response = await fetch(formUrl, {
-      method: "POST",
-      mode: "no-cors", // Important for Google Forms
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: formData.toString()
-    });
+  // 3. Create the final submission URL
+  const submissionUrl = `${baseUrl}?${params.toString()}`;
 
-    // Note: With no-cors mode, we can't read the response
-    console.log("Submission attempted");
-    return Promise.resolve(); // Consider all submissions as successful
+  // 4. Submit using a hidden iframe (bypasses CORS issues)
+  return new Promise((resolve, reject) => {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = submissionUrl;
     
-  } catch (error) {
-    console.error("Submission error:", error);
-    return Promise.reject(error);
-  }
+    iframe.onload = () => {
+      document.body.removeChild(iframe);
+      console.log('Submission successful via iframe');
+      resolve();
+    };
+    
+    iframe.onerror = () => {
+      document.body.removeChild(iframe);
+      console.error('Submission failed via iframe');
+      reject(new Error('Form submission failed'));
+    };
+    
+    document.body.appendChild(iframe);
+  });
 }
