@@ -364,36 +364,42 @@ function submitAllSales() {
   submitNext(0);
 }
 
-function submitSaleToGoogleForm(sale) {
-  // 1. Base URL with forced submission parameter
-  const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLScGs3PzOn2vABptL5aHssXw2si3Nl_j5tInqr-3X_K_8a2lsw/formResponse?submit=Submit";
-
-  // 2. Prepare all form data
+async function submitSaleToGoogleForm(sale) {
+  const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLScGs3PzOn2vABptL5aHssXw2si3Nl_j5tInqr-3X_K_8a2lsw/formResponse";
+  
   const formData = new URLSearchParams();
   
-  // Required hidden fields
-  formData.append("fvv", "1");
-  formData.append("pageHistory", "0");
-
-  // Your form fields (verified from your form)
-  formData.append("entry.530043741", sale.item);         // Item
-  formData.append("entry.1375268000", sale.unit);        // Unit
-  formData.append("entry.782910412", sale.quantity);    // Quantity
-  formData.append("entry.1738189165", sale.price);       // Price
-  formData.append("entry.1117472858", sale.discount);    // Discount
-  formData.append("entry.821166726", sale.extra);      // Extra
-  formData.append("entry.392694852", sale.total);       // Total
-  formData.append("entry.1649210669", sale.paymentMethod); // Payment
+  // Add your form fields (using the exact entry IDs from your form)
+  formData.append("entry.530043741", sale.item);               // Item
+  formData.append("entry.1375268000", sale.unit);              // Unit
+  formData.append("entry.782910412", sale.quantity);           // Quantity
+  formData.append("entry.1738189165", sale.price);             // Price
+  formData.append("entry.1117472858", sale.discount || 0);     // Discount
+  formData.append("entry.821166726", sale.extra || 0);         // Extra
+  formData.append("entry.392694852", sale.total);              // Total
+  formData.append("entry.1649210669", sale.paymentMethod);     // Payment
   formData.append("entry.1206379884", stores[currentStore].name); // Store
-  formData.append("entry.1846424292", products.find(p => p.id === sale.productId)?.stock || 0); // Remaining stock
+  formData.append("entry.1846424292", products.find(p => p.id === sale.productId)?.stock || 0); // Stock
 
-  // 3. Submit with minimal headers
-  return fetch(formUrl, {
-    method: "POST",
-    mode: "no-cors",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded"
-    },
-    body: formData.toString()
-  });
+  try {
+    console.log("Submitting sale:", sale);
+    console.log("Form data:", formData.toString());
+
+    const response = await fetch(formUrl, {
+      method: "POST",
+      mode: "no-cors", // Important for Google Forms
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: formData.toString()
+    });
+
+    // Note: With no-cors mode, we can't read the response
+    console.log("Submission attempted");
+    return Promise.resolve(); // Consider all submissions as successful
+    
+  } catch (error) {
+    console.error("Submission error:", error);
+    return Promise.reject(error);
+  }
 }
